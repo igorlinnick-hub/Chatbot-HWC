@@ -55,3 +55,22 @@ CREATE TRIGGER conversations_update_timestamp
     BEFORE UPDATE ON conversations
     FOR EACH ROW
     EXECUTE FUNCTION update_last_message_at();
+
+-- Bot settings (on/off toggle)
+CREATE TABLE bot_settings (
+    key    TEXT PRIMARY KEY,
+    value  TEXT NOT NULL
+);
+
+INSERT INTO bot_settings (key, value) VALUES ('instagram_enabled', 'true');
+
+-- Outbound message log (ManyChat buffer)
+CREATE TABLE outbound_log (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    platform    platform_enum NOT NULL,
+    user_id     TEXT NOT NULL,
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE INDEX idx_outbound_log_lookup
+    ON outbound_log (platform, user_id, created_at);

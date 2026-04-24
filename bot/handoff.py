@@ -61,19 +61,23 @@ async def trigger_booking_notification(
     metadata: dict,
 ) -> None:
     """
-    Called when step 9 completes — Calendly link was sent.
+    Called when step 9 completes. Calendly link was sent.
     Notifies Antonia so she knows to expect a booking.
     """
+    from datetime import datetime, timezone
+
     pain_point = metadata.get("pain_point", "not captured")
     duration = metadata.get("duration", "not captured")
+    sent_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     notification = (
         f"\u2705 *Booking link sent*\n\n"
         f"*Platform:* {platform.capitalize()}\n"
-        f"*User ID:* `{user_id}`\n\n"
+        f"*Instagram ID:* `{user_id}`\n"
+        f"*Time:* {sent_at}\n\n"
         f"*Their struggle:* {pain_point}\n"
         f"*How long:* {duration}\n\n"
-        f"_Calendly link was sent — watch for the booking confirmation._"
+        f"_Calendly link was sent. Watch for the booking confirmation._"
     )
 
     try:

@@ -20,6 +20,20 @@ async def get_conversation(platform: str, user_id: str) -> dict | None:
     return result.data[0] if result.data else None
 
 
+async def get_conversation_any_status(platform: str, user_id: str) -> dict | None:
+    """Fetch the most recent conversation for a user regardless of status."""
+    result = (
+        supabase.table("conversations")
+        .select("*")
+        .eq("platform", platform)
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    return result.data[0] if result.data else None
+
+
 async def create_conversation(platform: str, user_id: str) -> dict:
     """Create a new conversation record."""
     result = (
@@ -156,3 +170,64 @@ async def mark_dead_conversations(inactive_days: int = 7) -> int:
     )
 
     return len(result.data) if result.data else 0
+
+
+# ─── Bot Settings (on/off toggle) ────────────────────────────────────
+
+
+async def get_bot_enabled() -> bool:
+    """Check if the Instagram bot is enabled. Defaults to True if no row exists."""
+    result = (
+        supabase.table("bot_settings")
+        .select("value")
+        .eq("key", "instagram_enabled")
+        .limit(1)
+        .execute()
+    )
+    if not result.data:
+        return True
+    return result.data[0]["value"] == "true"
+
+
+async def set_bot_enabled(enabled: bool) -> None:
+    """Toggle the Instagram bot on/off."""
+    value = "true" if enabled else "false"
+    # Try update first
+    result = (
+        supabase.table("bot_settings")
+        .update({"value": value})
+        .eq("key", "instagram_enabled")
+        .execute()
+    )
+    if not result.data:
+        # Row doesn't exist, insert it
+        supabase.table("bot_settings").insert({
+            "key": "instagram_enabled",
+            "value": value,
+        }).execute()
+
+
+# ─── Outbound message log (ManyChat buffer) ──────────────────────────
+
+
+async def log_outbound_message(platform: str, user_id: str) -> None:
+    """Log that we sent a message to a user."""
+    supabase.table("outbound_log").insert({
+        "platform": platform,
+        "user_id": user_id,
+    }).execute()
+
+
+async def has_recent_outbound(platform: str, user_id: str, seconds: int = 60) -> bool:
+    """Check if any message was sent to this user in the last N seconds."""
+    cutoff = (datetime.utcnow() - timedelta(seconds=seconds)).isoformat()
+    result = (
+        supabase.table("outbound_log")
+        .select("id")
+        .eq("platform", platform)
+        .eq("user_id", user_id)
+        .gte("created_at", cutoff)
+        .limit(1)
+        .execute()
+    )
+    return bool(result.data)

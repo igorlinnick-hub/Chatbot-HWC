@@ -33,6 +33,23 @@ def calculate_delay(message_length: int, step: int) -> int:
     return min(base, MAX_DELAY)
 
 
+def calculate_manychat_delay(message_length: int, step: int) -> float:
+    """
+    Calculate delay for ManyChat responses (2-8 seconds).
+    Scales with message length and emotional weight, capped for ManyChat timeout.
+    """
+    # Base: 2-5 seconds based on message length
+    base = 2.0 + min(message_length / 40, 3.0)
+
+    # Apply emotional weight
+    step_data = CONVERSATION_STEPS.get(step, {})
+    weight = step_data.get("emotional_weight", "low")
+    multiplier = WEIGHT_MULTIPLIERS.get(weight, 1.0)
+    delay = base * multiplier
+
+    return min(max(delay, 2.0), 8.0)
+
+
 def is_night_hours() -> bool:
     """Check if current time is in the night hold window."""
     hour = datetime.now().hour

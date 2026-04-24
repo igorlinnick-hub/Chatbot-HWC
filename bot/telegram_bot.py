@@ -1,3 +1,5 @@
+import logging
+
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -9,12 +11,21 @@ from telegram.ext import (
 from config import TELEGRAM_BOT_TOKEN, ANTONIA_TELEGRAM_CHAT_ID
 from bot.conversation import generate_response
 from bot.handoff import resume_conversation
+from prompts.steps import CONVERSATION_STEPS
 from db.supabase_client import (
     save_correction,
     save_training_example,
     get_active_conversations,
     set_conversation_status,
+    get_conversation,
+    create_conversation,
+    get_bot_enabled,
+    set_bot_enabled,
+    update_conversation,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def is_antonia(update: Update) -> bool:
@@ -27,11 +38,45 @@ async def cmd_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_antonia(update):
         return
 
+    practice_user_id = f"practice_{update.effective_chat.id}"
+    platform = "telegram"
+
+    # Reset any existing practice conversation
+    convo = await get_conversation(platform, practice_user_id)
+    if convo:
+        await update_conversation(
+            platform=platform,
+            user_id=practice_user_id,
+            step=1,
+            history=[],
+            metadata={},
+            status="active",
+        )
+
     context.user_data["practice_mode"] = True
+    context.user_data["opener_sent"] = False
     await update.message.reply_text(
-        "Practice mode started. Send me messages as if you're a client.\n"
-        "Send /endchat to stop."
+        "Practice mode started. Send /endchat to stop.\n"
+        "─────────────────────"
     )
+
+    # Send the hardcoded step 1 opener — no Claude call
+    opener = CONVERSATION_STEPS[1]["message"]
+
+    # Ensure conversation exists in DB with opener in history
+    if not convo:
+        await create_conversation(platform, practice_user_id)
+    await update_conversation(
+        platform=platform,
+        user_id=practice_user_id,
+        step=1,
+        history=[{"role": "assistant", "content": opener}],
+        metadata={},
+        status="active",
+    )
+
+    await update.message.reply_text(opener)
+    context.user_data["opener_sent"] = True
 
 
 async def cmd_endchat(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -45,7 +90,10 @@ async def cmd_endchat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_correct(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Correct the last bot response. Usage: /correct <corrected response>"""
+    logger.info(f"/correct command received from chat {update.effective_chat.id}")
+
     if not is_antonia(update):
+        logger.info(f"/correct rejected: not Antonia (chat id: {update.effective_chat.id})")
         return
 
     corrected = update.message.text.replace("/correct ", "", 1).strip()
@@ -54,16 +102,23 @@ async def cmd_correct(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     last = context.user_data.get("last_bot_response", {})
+    logger.info(f"/correct last_bot_response: {last}")
     if not last:
         await update.message.reply_text("No recent response to correct.")
         return
 
-    await save_correction(
-        original=last.get("response", ""),
-        corrected=corrected,
-        context=last.get("user_message", ""),
-    )
-    await update.message.reply_text("Correction saved. I'll learn from this.")
+    try:
+        await save_correction(
+            original=last.get("response", ""),
+            corrected=corrected,
+            context=last.get("user_message", ""),
+        )
+        await update.message.reply_text(
+            "Correction saved. Active now, next response will use it."
+        )
+    except Exception as e:
+        logger.error(f"/correct error: {e}", exc_info=True)
+        await update.message.reply_text(f"Error saving correction: {e}")
 
 
 async def cmd_teach(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -86,13 +141,33 @@ async def cmd_teach(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Training example saved.")
 
 
+async def cmd_on(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Turn Instagram bot ON."""
+    if not is_antonia(update):
+        return
+    await set_bot_enabled(True)
+    await update.message.reply_text("Instagram bot is ON. Responding to DMs.")
+
+
+async def cmd_off(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Turn Instagram bot OFF."""
+    if not is_antonia(update):
+        return
+    await set_bot_enabled(False)
+    await update.message.reply_text("Instagram bot is OFF. DMs will be received but not answered.")
+
+
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Show active conversations count."""
+    """Show active conversations count and bot status."""
     if not is_antonia(update):
         return
 
     convos = await get_active_conversations()
-    await update.message.reply_text(f"Active conversations: {len(convos)}")
+    enabled = await get_bot_enabled()
+    status = "ON" if enabled else "OFF"
+    await update.message.reply_text(
+        f"Bot: {status}\nActive conversations: {len(convos)}"
+    )
 
 
 async def cmd_takeover(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -146,11 +221,19 @@ async def practice_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if not context.user_data.get("practice_mode"):
         return
+    if not context.user_data.get("opener_sent"):
+        return
 
     text = update.message.text
-    result = await generate_response(
-        "telegram", f"practice_{update.effective_chat.id}", text
-    )
+
+    try:
+        result = await generate_response(
+            "telegram", f"practice_{update.effective_chat.id}", text
+        )
+    except Exception as e:
+        logger.error(f"Practice mode error: {e}", exc_info=True)
+        await update.message.reply_text(f"Error: {type(e).__name__}: {e}")
+        return
 
     context.user_data["last_bot_response"] = {
         "response": "\n".join(result["messages"]) if result["messages"] else "",
@@ -183,6 +266,8 @@ def create_telegram_app() -> Application:
     app.add_handler(CommandHandler("correct", cmd_correct))
     app.add_handler(CommandHandler("teach", cmd_teach))
     app.add_handler(CommandHandler("status", cmd_status))
+    app.add_handler(CommandHandler("on", cmd_on))
+    app.add_handler(CommandHandler("off", cmd_off))
     app.add_handler(CommandHandler("takeover", cmd_takeover))
     app.add_handler(CommandHandler("resume", cmd_resume))
 
