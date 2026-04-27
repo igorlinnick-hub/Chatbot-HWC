@@ -68,7 +68,7 @@ export default function IntegrationsPage() {
       name: "Booking link",
       icon: Calendar,
       env: ["BOOKING_LINK"],
-      description: "Calendly / Cal.com / etc. URL the bot sends at step 9 (free discovery call).",
+      description: "Booking URL the bot sends at step 9 (free discovery call).",
       configured: has("BOOKING_LINK"),
       color: "from-violet-400/20 to-purple-500/10 border-violet-400/20",
     },

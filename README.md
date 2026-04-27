@@ -64,7 +64,7 @@ Create a project. In the SQL editor run `db/schema.sql`. Grab `SUPABASE_URL` and
 ### 2. Backend (FastAPI)
 
 ```bash
-cd Antonia
+cd Chatbot-HWC
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env       # fill in keys
@@ -85,7 +85,7 @@ Health check: `GET /health`.
 | `INSTAGRAM_PAGE_ID`            | Filters out echo messages from the page itself.                     |
 | `SUPABASE_URL`                 | Supabase project URL.                                               |
 | `SUPABASE_KEY`                 | Supabase **service_role** key (not anon).                           |
-| `BOOKING_LINK`                 | Calendar URL the bot sends at step 9 (Calendly, Cal.com, etc.).     |
+| `BOOKING_LINK`                 | Booking URL the bot sends at step 9.                                |
 
 Deploy: a `railway.toml` is already set up. Push the repo to Railway and set the same env vars
 there. Backend needs to be reachable from ManyChat (public HTTPS URL).

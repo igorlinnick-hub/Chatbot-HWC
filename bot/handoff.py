@@ -40,7 +40,7 @@ async def trigger_booking_notification(
     metadata: dict,
 ) -> None:
     """
-    Called when step 9 completes and the Calendly link has been sent.
+    Called when step 9 completes and the booking link has been sent.
     Stamps the booking-sent timestamp on conversation metadata; the
     dashboard renders this on the conversation detail page.
     """

@@ -17,8 +17,8 @@ INSTAGRAM_PAGE_ID = os.getenv("INSTAGRAM_PAGE_ID", "")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-# Booking link (Calendly, Cal.com, etc.) — sent at the end of the script
-BOOKING_LINK = os.getenv("BOOKING_LINK", "https://calendly.com/your-clinic/discovery-call")
+# Booking link — URL the bot sends at the end of the script. Set via env.
+BOOKING_LINK = os.getenv("BOOKING_LINK", "")
 
 # Delay settings (seconds)
 MIN_DELAY = 30

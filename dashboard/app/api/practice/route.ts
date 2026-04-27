@@ -3,11 +3,11 @@ import { NextResponse } from "next/server";
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8000";
 
 const MOCK_REPLIES = [
-  "Hey love, so glad you reached out. Tell me what's been on your heart lately?",
-  "Oh, that sounds really heavy. I hear you. Can I ask — when did you first notice it getting worse?",
-  "That makes so much sense given everything you're carrying. Has anything at all helped, even a little?",
-  "I love that you're looking into this. Hypnotherapy is incredibly gentle — most people feel the shift in the first session. Want me to send over my calendar?",
-  "Here's my link, love: https://calendly.com/bloominghypnosis/15min — grab whatever works for you 💜",
+  "Aloha, thanks for reaching out. What area of your wellness are you most wanting to work on right now?",
+  "That sounds really draining. I'm curious, if you were able to really shift this, what would that change open up for you?",
+  "Makes sense given everything you've been carrying. What do you think has been getting in the way of feeling your best already?",
+  "I hear you. Could I make a suggestion?",
+  "What we could do is set up a free discovery call with one of our coaches. Want me to send the link?",
 ];
 
 export async function POST(req: Request) {

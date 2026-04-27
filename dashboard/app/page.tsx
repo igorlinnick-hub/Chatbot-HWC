@@ -56,7 +56,7 @@ export default async function HomePage() {
             9-step qualifier
           </div>
           <p className="text-sm text-white/50 mt-2">
-            Mirrors → validates → qualifies → books via Calendly. Natural delays, night-hour hold, correction loop.
+            Mirrors → validates → qualifies → sends the booking link. Natural delays, night-hour hold, correction loop.
           </p>
           <Link href="/about" className="btn-ghost mt-5">
             How it works →
