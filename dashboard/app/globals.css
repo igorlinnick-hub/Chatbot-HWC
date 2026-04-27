@@ -1,0 +1,165 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+
+:root {
+  --bg-0: #050208;
+  --bg-1: #0d0618;
+  --violet-glow: #8b5cf6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100vh;
+  background: var(--bg-0);
+  color: rgba(255, 255, 255, 0.95);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background:
+    radial-gradient(1200px 800px at 15% -10%, rgba(139, 92, 246, 0.35), transparent 60%),
+    radial-gradient(900px 700px at 110% 10%, rgba(91, 33, 182, 0.30), transparent 55%),
+    radial-gradient(1000px 900px at 50% 120%, rgba(255, 255, 255, 0.08), transparent 60%),
+    linear-gradient(180deg, #05010d 0%, #0a0414 60%, #050208 100%);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .glass {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.03) 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-strong {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(139, 92, 246, 0.08) 100%
+    );
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .card {
+    @apply glass rounded-2xl p-6 transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:border-violet-400/40 hover:shadow-[0_0_40px_-8px_rgba(139,92,246,0.5)];
+  }
+
+  .glow-text {
+    background: linear-gradient(
+      135deg,
+      #ffffff 0%,
+      #c4b5fd 50%,
+      #8b5cf6 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
+           text-sm font-medium text-white
+           bg-gradient-to-br from-violet-500 to-violet-700
+           shadow-lg shadow-violet-900/40
+           transition-all duration-200
+           hover:from-violet-400 hover:to-violet-600 hover:shadow-violet-700/60
+           active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl
+           text-sm font-medium text-white/80
+           border border-white/10 bg-white/5
+           transition-all duration-200
+           hover:bg-white/10 hover:border-white/20 hover:text-white
+           active:scale-[0.98];
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl
+           text-sm font-medium text-red-200
+           border border-red-500/30 bg-red-500/10
+           transition-all duration-200
+           hover:bg-red-500/20 hover:border-red-500/50;
+  }
+
+  .input {
+    @apply w-full px-4 py-2.5 rounded-xl
+           bg-white/5 border border-white/10
+           text-white placeholder-white/30
+           focus:outline-none focus:border-violet-400/50 focus:bg-white/[0.07]
+           transition-all duration-200;
+  }
+
+  .label {
+    @apply block text-xs font-medium text-white/60 uppercase tracking-wider mb-2;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  .badge-active {
+    @apply badge bg-emerald-500/15 text-emerald-300 border border-emerald-500/25;
+  }
+
+  .badge-booked {
+    @apply badge bg-violet-500/20 text-violet-200 border border-violet-400/30;
+  }
+
+  .badge-dead {
+    @apply badge bg-white/5 text-white/40 border border-white/10;
+  }
+
+  .badge-handed {
+    @apply badge bg-amber-500/15 text-amber-200 border border-amber-500/25;
+  }
+
+  .divider {
+    @apply h-px bg-gradient-to-r from-transparent via-white/10 to-transparent;
+  }
+}
+
+/* custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.25);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
+  background-clip: padding-box;
+}
+
+/* selection */
+::selection {
+  background: rgba(139, 92, 246, 0.35);
+  color: white;
+}

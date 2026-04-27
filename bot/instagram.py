@@ -21,7 +21,7 @@ def verify_signature(payload: bytes, signature: str) -> bool:
 
 
 async def send_typing_indicator(recipient_id: str):
-    """Send typing indicator to make it look like Antonia is typing."""
+    """Send typing indicator so the reply feels human."""
     async with httpx.AsyncClient() as client:
         await client.post(
             GRAPH_API_URL,

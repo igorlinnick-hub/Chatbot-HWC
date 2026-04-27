@@ -110,7 +110,7 @@ def validate_response(response: str, history: list) -> tuple[bool, str]:
 EXTRACT_PROMPT = """
 Based on this conversation, extract two things from what the user said:
 - duration: how long they've been dealing with this — use their exact words as closely as possible (e.g. "since college", "about 3 years", "a few months on and off")
-- pain_point: their specific struggle in their own words — one short phrase (e.g. "freezing up around people I like", "can't speak up at work", "panic attacks in social situations")
+- pain_point: their specific wellness concern in their own words — one short phrase (e.g. "low energy in the afternoons", "trouble sleeping through the night", "stress around work")
 
 Return ONLY valid JSON with no extra text, no markdown, no explanation:
 {"duration": "...", "pain_point": "..."}
@@ -188,7 +188,7 @@ def step_question_already_asked(step: int, history: list, metadata: dict | None 
     # Fill in metadata placeholders for comparison
     if metadata:
         duration = metadata.get("duration") or "a while"
-        pain_point = metadata.get("pain_point") or "your anxiety"
+        pain_point = metadata.get("pain_point") or "your wellness goal"
         question = question.replace("{duration}", duration)
         question = question.replace("{pain_point}", pain_point)
 
@@ -222,7 +222,7 @@ def count_bot_responses_on_step(step: int, history: list, metadata: dict | None 
 
     if metadata and question:
         duration = metadata.get("duration") or "a while"
-        pain_point = metadata.get("pain_point") or "your anxiety"
+        pain_point = metadata.get("pain_point") or "your wellness goal"
         question = question.replace("{duration}", duration)
         question = question.replace("{pain_point}", pain_point)
 
@@ -340,7 +340,7 @@ async def generate_response(
         logger.info(f"Refusal #{refusal_count} at step {current_step} for {platform}/{user_id}")
 
         if refusal_count >= 2:
-            # Second refusal — handoff to Antonia
+            # Second refusal — hand off to a human teammate
             await update_conversation(
                 platform=platform, user_id=user_id,
                 step=current_step, history=history,
@@ -507,7 +507,7 @@ Stay warm. Stay casual. One short message only. Do NOT re-ask the question.
 async def send_opener(platform: str, user_id: str) -> dict:
     """
     Called when someone DMs for the first time.
-    Step 1 is send_first=True — Antonia initiates, no user message yet.
+    Step 1 is send_first=True — the bot initiates, no user message yet.
     """
     convo = await get_conversation(platform, user_id)
     if convo:

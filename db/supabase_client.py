@@ -78,7 +78,7 @@ async def update_conversation(
 
 
 async def save_correction(original: str, corrected: str, context: str) -> dict:
-    """Save a correction from Antonia."""
+    """Save a correction submitted from the dashboard."""
     result = (
         supabase.table("corrections")
         .insert({
@@ -92,7 +92,7 @@ async def save_correction(original: str, corrected: str, context: str) -> dict:
 
 
 async def save_training_example(user_message: str, ideal_response: str, notes: str = "") -> dict:
-    """Save a training example from Antonia."""
+    """Save a training example submitted from the dashboard."""
     result = (
         supabase.table("training_examples")
         .insert({
@@ -152,6 +152,60 @@ async def set_conversation_status(platform: str, user_id: str, status: str) -> b
         .execute()
     )
     return bool(result.data)
+
+
+async def record_handoff(
+    platform: str,
+    user_id: str,
+    handoff_type: str,
+    summary: str,
+) -> None:
+    """
+    Mark conversation handed_off and stamp the metadata so the dashboard
+    can surface an unread handoff banner.
+    """
+    existing = (
+        supabase.table("conversations")
+        .select("metadata")
+        .eq("platform", platform)
+        .eq("user_id", user_id)
+        .in_("status", ["active", "handed_off"])
+        .limit(1)
+        .execute()
+    )
+    metadata = (existing.data[0]["metadata"] if existing.data else {}) or {}
+    metadata["handoff"] = {
+        "type": handoff_type,
+        "summary": summary,
+        "at": datetime.utcnow().isoformat() + "Z",
+        "seen": False,
+    }
+    supabase.table("conversations").update({
+        "status": "handed_off",
+        "metadata": metadata,
+    }).eq("platform", platform).eq("user_id", user_id).in_(
+        "status", ["active", "handed_off"]
+    ).execute()
+
+
+async def record_booking(platform: str, user_id: str) -> None:
+    """Stamp booking sent time onto the conversation metadata."""
+    existing = (
+        supabase.table("conversations")
+        .select("metadata")
+        .eq("platform", platform)
+        .eq("user_id", user_id)
+        .in_("status", ["active", "handed_off", "booked"])
+        .limit(1)
+        .execute()
+    )
+    metadata = (existing.data[0]["metadata"] if existing.data else {}) or {}
+    metadata["booking_link_sent_at"] = datetime.utcnow().isoformat() + "Z"
+    supabase.table("conversations").update({
+        "metadata": metadata,
+    }).eq("platform", platform).eq("user_id", user_id).in_(
+        "status", ["active", "handed_off", "booked"]
+    ).execute()
 
 
 async def mark_dead_conversations(inactive_days: int = 7) -> int:

@@ -1,3 +1,4 @@
+from config import BOOKING_LINK
 from prompts.system_prompt import SYSTEM_PROMPT
 from prompts.steps import CONVERSATION_STEPS
 
@@ -11,22 +12,22 @@ STEP_INSTRUCTIONS = {
 You already sent the opening message. Now the user has replied.
 Mirror what they said (1-3 sentences).
 Then ask this question (use these words, but ONLY if you haven't asked it before):
-"I'm wondering, where in your life do you find your anxiety showing up for you the most?"
+"I'm wondering, what area of your wellness are you most wanting to work on right now?"
 If you already asked this in a previous message, DO NOT ask it again. Move the conversation forward naturally.
 """,
-    2: """STEP 2 - WHERE ANXIETY SHOWS UP
+    2: """STEP 2 - WELLNESS FOCUS AREA
 Mirror what they just said (1-3 sentences).
 Then ask this question (use these words, but ONLY if you haven't asked it before):
-"I'm curious, if you were somehow able to stop the anxiety what would that do for you?"
+"I'm curious, if you were able to really shift this, what would that change open up for you?"
 If you already asked this in a previous message, DO NOT ask it again. Move forward.
 """,
-    3: """STEP 3 - WHAT STOPPING ANXIETY WOULD DO
+    3: """STEP 3 - WHAT THE SHIFT WOULD OPEN UP
 Mirror what they said (1-3 sentences).
 Then ask this question (use these words, but ONLY if you haven't asked it before):
-"And what do you think is preventing you from being able to feel better in general already besides the anxiety?"
+"And what do you think has been getting in the way of feeling your best already?"
 If you already asked this in a previous message, DO NOT ask it again. Move forward.
 """,
-    4: """STEP 4 - WHAT'S PREVENTING THEM
+    4: """STEP 4 - WHAT'S BEEN IN THE WAY
 Mirror what they said (1-3 sentences).
 Then ask this question (use these words, but ONLY if you haven't asked it before):
 "I'm wondering, how important is it for you to make a change now"
@@ -41,26 +42,26 @@ If you already asked this in a previous message, DO NOT ask it again. Move forwa
     6: """STEP 6 - PERMISSION TO SUGGEST
 They said yes to "Could I make a suggestion?"
 Do NOT mirror. Send this message:
-"I know you've mentioned you've been trying to solve this for {duration}, so what we could do is let you set up a free session directly with me to better understand what you've been going through so far, where you want to be and how I could possibly help you overcome {pain_point}."
+"I know you've been navigating this for {duration}, so what we could do is set you up with a free discovery call with one of our coaches to really understand where you've been, where you want to be, and how the clinic could help you with {pain_point}."
 
 Then send as a SEPARATE message (after a blank line):
 "Would that be helpful for you?"
 """,
     7: """STEP 7 - OFFER ACCEPTED
-They said yes to the free session offer.
+They said yes to the free discovery call.
 Do NOT mirror. Send these messages as separate messages (separated by blank lines):
 "Alright, happy to help."
 
-"Do you have 2 mins to pick a time that's convenient for you to chat, if I send you my calendar? To make it easier for you."
+"Do you have 2 mins to pick a time that's convenient for you, if I send over the calendar? Want to make it easy."
 """,
-    8: """STEP 8 - READY FOR CALENDAR
+    8: f"""STEP 8 - READY FOR CALENDAR
 They said yes to receiving the calendar.
 Do NOT mirror. Send these messages as separate messages (separated by blank lines):
-"Great, here's my calendar:"
+"Great, here's the calendar:"
 
-"https://calendly.com/bloominghypnosis/15min"
+"{BOOKING_LINK}"
 
-"And let me know once you're done so that I can check everything went through properly for you... sometimes calendars act weird"
+"And let me know once you're done so I can check it went through properly... calendars sometimes act weird."
 """,
     9: """STEP 9 - FINAL / POST-BOOKING
 They've booked or confirmed. Respond warmly and naturally.
@@ -87,7 +88,7 @@ def build_prompt_for_step(
     # Fill in metadata variables (duration, pain_point) if present
     if metadata:
         duration = metadata.get("duration") or "a while"
-        pain_point = metadata.get("pain_point") or "your anxiety"
+        pain_point = metadata.get("pain_point") or "your wellness goal"
         instruction = instruction.replace("{duration}", duration)
         instruction = instruction.replace("{pain_point}", pain_point)
 
@@ -96,9 +97,9 @@ def build_prompt_for_step(
 
     # Inject training examples if any exist
     if examples:
-        prompt += "\n\nEXAMPLES OF IDEAL RESPONSES FROM ANTONIA:\n"
+        prompt += "\n\nEXAMPLES OF IDEAL RESPONSES FROM THE CLINIC TEAM:\n"
         for ex in examples[-15:]:
-            prompt += f"\nUser said: {ex['user_message']}\nAntonia responded: {ex['ideal_response']}\n"
+            prompt += f"\nUser said: {ex['user_message']}\nLeilani responded: {ex['ideal_response']}\n"
 
     # Inject recent corrections - these take highest priority
     if corrections:

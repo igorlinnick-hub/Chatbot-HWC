@@ -1,5 +1,5 @@
 """
-End-to-end test for the Antonia conversation engine.
+End-to-end test for the Hawaii Wellness Clinic conversation engine.
 Run with: python test_conversation.py
 
 Requires: ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_KEY in .env
@@ -13,7 +13,7 @@ load_dotenv()
 
 from bot.conversation import generate_response, send_opener
 
-TEST_PLATFORM = "telegram"
+TEST_PLATFORM = "instagram"
 TEST_USER_ID = "test_user_001"
 
 # Simulated client conversation
@@ -31,7 +31,7 @@ TEST_FLOW = [
 
 async def run_test():
     print("\n" + "=" * 60)
-    print("ANTONIA BOT — END TO END TEST")
+    print("HAWAII WELLNESS CLINIC BOT — END TO END TEST")
     print("=" * 60 + "\n")
 
     # Step 1 — opener

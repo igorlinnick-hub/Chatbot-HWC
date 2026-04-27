@@ -2,14 +2,15 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from config import INSTAGRAM_VERIFY_TOKEN, TELEGRAM_BOT_TOKEN, INSTAGRAM_PAGE_ID
+from config import INSTAGRAM_VERIFY_TOKEN, INSTAGRAM_PAGE_ID
 from bot.conversation import generate_response, send_opener
 from bot.instagram import verify_signature, send_typing_indicator, send_message
 from bot.delay_engine import calculate_delay, calculate_manychat_delay, is_night_hours, seconds_until_morning
 from bot.handoff import trigger_handoff, trigger_booking_notification
-from bot.telegram_bot import create_telegram_app
 from db.supabase_client import (
     get_conversation,
     get_conversation_any_status,
@@ -17,12 +18,24 @@ from db.supabase_client import (
     get_bot_enabled,
     has_recent_outbound,
     log_outbound_message,
+    create_conversation,
+    update_conversation,
 )
+from prompts.steps import CONVERSATION_STEPS
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Antonia Bot")
+app = FastAPI(title="Hawaii Wellness Clinic Bot")
+
+# CORS — allow the Vercel dashboard to call /practice and other admin endpoints.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 scheduler = AsyncIOScheduler()
 
 # ─── Message batching for ManyChat ───────────────────────────────────
@@ -32,30 +45,10 @@ _manychat_locks: dict[str, asyncio.Lock] = {}
 _manychat_processing: dict[str, bool] = {}
 MANYCHAT_BATCH_WINDOW = 3  # seconds to wait for additional messages
 
-telegram_app = None
-
 
 @app.on_event("startup")
 async def startup():
-    global telegram_app
     scheduler.start()
-
-    # Start Telegram bot polling alongside FastAPI
-    if TELEGRAM_BOT_TOKEN:
-        telegram_app = create_telegram_app()
-        await telegram_app.initialize()
-        await telegram_app.start()
-        await telegram_app.updater.start_polling(drop_pending_updates=True)
-        logger.info("Telegram bot polling started")
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    if telegram_app:
-        await telegram_app.updater.stop()
-        await telegram_app.stop()
-        await telegram_app.shutdown()
-        logger.info("Telegram bot stopped")
 
 
 # ─── Scheduled Jobs ──────────────────────────────────────────────────
@@ -286,15 +279,6 @@ async def manychat_webhook(request: Request):
     return {"version": "v2", "content": {"messages": [{"type": "text", "text": combined}]}}
 
 
-# ─── Telegram Webhook ────────────────────────────────────────────────
-
-
-@app.post("/webhook/telegram")
-async def telegram_webhook(request: Request):
-    """Placeholder - Telegram bot uses polling via telegram_bot.py."""
-    return {"status": "ok"}
-
-
 # ─── Response Scheduling ─────────────────────────────────────────────
 
 MANYCHAT_NEW_CONVO_DELAY = 30  # seconds to wait before responding to new users
@@ -335,7 +319,7 @@ async def schedule_response(platform: str, user_id: str, text: str):
     result = await generate_response(platform, user_id, text)
 
     if not result["messages"]:
-        # ── Handoff triggered - notify Antonia via Telegram ──
+        # ── Handoff triggered — dashboard surfaces it via status=handed_off ──
         if result["handoff"]:
             convo = await get_conversation(platform, user_id)
             history = convo["history"] if convo else []
@@ -380,6 +364,81 @@ async def schedule_send(platform: str, user_id: str, messages: list, delay: int)
 
     run_at = datetime.now() + timedelta(seconds=delay)
     scheduler.add_job(send_delayed, "date", run_date=run_at, misfire_grace_time=300)
+
+
+# ─── Practice / Dashboard Roleplay ────────────────────────────────────
+
+
+class PracticeRequest(BaseModel):
+    session_id: str
+    message: str
+
+
+class PracticeReset(BaseModel):
+    session_id: str
+
+
+PRACTICE_PLATFORM = "practice"
+
+
+def _practice_user_id(session_id: str) -> str:
+    """Namespace practice conversations so they never collide with real ones."""
+    return f"practice_web_{session_id}"
+
+
+@app.post("/practice/chat")
+async def practice_chat(payload: PracticeRequest):
+    """
+    Dashboard roleplay endpoint. Creates a conversation under
+    platform='practice' so it stays isolated from real Instagram traffic,
+    seeds it with the step-1 opener on first message, then delegates to
+    generate_response exactly like real webhooks do.
+    """
+    user_id = _practice_user_id(payload.session_id)
+    platform = PRACTICE_PLATFORM
+
+    opener_sent = False
+    convo = await get_conversation_any_status(platform, user_id)
+    if convo is None:
+        await create_conversation(platform, user_id)
+        opener_text = CONVERSATION_STEPS[1]["message"]
+        await update_conversation(
+            platform=platform,
+            user_id=user_id,
+            step=1,
+            history=[{"role": "assistant", "content": opener_text}],
+            metadata={},
+            status="active",
+        )
+        opener_sent = True
+
+    result = await generate_response(platform, user_id, payload.message)
+
+    messages = list(result.get("messages") or [])
+    if opener_sent:
+        messages = [CONVERSATION_STEPS[1]["message"]] + messages
+
+    return {
+        "messages": messages,
+        "step": result.get("step"),
+        "handoff": bool(result.get("handoff")),
+        "handoff_type": result.get("handoff_type"),
+        "handoff_summary": result.get("handoff_summary"),
+    }
+
+
+@app.post("/practice/reset")
+async def practice_reset(payload: PracticeReset):
+    user_id = _practice_user_id(payload.session_id)
+    await update_conversation(
+        platform=PRACTICE_PLATFORM,
+        user_id=user_id,
+        step=1,
+        history=[],
+        metadata={},
+        status="active",
+    )
+    return {"ok": True}
 
 
 # ─── Health Check ─────────────────────────────────────────────────────

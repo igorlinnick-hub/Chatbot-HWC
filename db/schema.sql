@@ -1,11 +1,12 @@
--- Run this in Supabase SQL editor
+-- Run this in Supabase SQL editor.
+-- platform values currently used by the code: 'instagram', 'practice'.
+-- Kept as plain TEXT (not an enum) so adding a new channel later is one line.
 
-CREATE TYPE platform_enum AS ENUM ('instagram', 'telegram');
 CREATE TYPE status_enum AS ENUM ('active', 'booked', 'dead', 'handed_off');
 
 CREATE TABLE conversations (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    platform         platform_enum NOT NULL,
+    platform         TEXT NOT NULL,
     user_id          TEXT NOT NULL,
     step             INTEGER NOT NULL DEFAULT 1,
     history          JSONB NOT NULL DEFAULT '[]',
@@ -67,7 +68,7 @@ INSERT INTO bot_settings (key, value) VALUES ('instagram_enabled', 'true');
 -- Outbound message log (ManyChat buffer)
 CREATE TABLE outbound_log (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    platform    platform_enum NOT NULL,
+    platform    TEXT NOT NULL,
     user_id     TEXT NOT NULL,
     created_at  TIMESTAMP WITH TIME ZONE DEFAULT now()
 );

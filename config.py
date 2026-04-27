@@ -13,16 +13,12 @@ INSTAGRAM_APP_SECRET = os.getenv("INSTAGRAM_APP_SECRET")
 INSTAGRAM_VERIFY_TOKEN = os.getenv("INSTAGRAM_VERIFY_TOKEN")
 INSTAGRAM_PAGE_ID = os.getenv("INSTAGRAM_PAGE_ID", "")
 
-# Telegram
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-ANTONIA_TELEGRAM_CHAT_ID = os.getenv("ANTONIA_TELEGRAM_CHAT_ID")
-
 # Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-# Calendly
-CALENDLY_LINK = "https://calendly.com/bloominghypnosis/15min"
+# Booking link (Calendly, Cal.com, etc.) — sent at the end of the script
+BOOKING_LINK = os.getenv("BOOKING_LINK", "https://calendly.com/your-clinic/discovery-call")
 
 # Delay settings (seconds)
 MIN_DELAY = 30
