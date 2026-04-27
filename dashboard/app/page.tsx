@@ -41,7 +41,7 @@ export default async function HomePage() {
         </div>
         {!isSupabaseConfigured && (
           <div className="badge bg-amber-500/10 text-amber-200 border border-amber-400/30">
-            <Database className="w-3.5 h-3.5" /> Showing mock data — configure Supabase in <code className="mx-1">.env.local</code>
+            <Database className="w-3.5 h-3.5" /> Supabase not connected — set env vars to see live data
           </div>
         )}
       </header>

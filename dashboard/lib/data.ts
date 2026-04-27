@@ -1,10 +1,4 @@
 import { getSupabase, isSupabaseConfigured } from "./supabase";
-import {
-  mockConversations,
-  mockCorrections,
-  mockTraining,
-  mockStats,
-} from "./mock-data";
 import type {
   Conversation,
   Correction,
@@ -12,6 +6,15 @@ import type {
   Stats,
   Status,
 } from "./types";
+
+const EMPTY_STATS: Stats = {
+  active: 0,
+  booked: 0,
+  handed_off: 0,
+  dead: 0,
+  total_corrections: 0,
+  total_training: 0,
+};
 
 export async function getBotEnabled(): Promise<boolean> {
   const sb = getSupabase();
@@ -53,15 +56,7 @@ export async function listConversations(filters?: {
   search?: string;
 }): Promise<Conversation[]> {
   const sb = getSupabase();
-  if (!sb) {
-    let data = mockConversations.filter((c) => c.platform !== "practice");
-    if (filters?.status) data = data.filter((c) => c.status === filters.status);
-    if (filters?.search) {
-      const q = filters.search.toLowerCase();
-      data = data.filter((c) => c.user_id.toLowerCase().includes(q));
-    }
-    return sortForDisplay(data);
-  }
+  if (!sb) return [];
 
   let query = sb
     .from("conversations")
@@ -77,9 +72,7 @@ export async function listConversations(filters?: {
 
 export async function getConversation(id: string): Promise<Conversation | null> {
   const sb = getSupabase();
-  if (!sb) {
-    return mockConversations.find((c) => c.id === id) ?? null;
-  }
+  if (!sb) return null;
   const { data } = await sb.from("conversations").select("*").eq("id", id).maybeSingle();
   return (data as Conversation) ?? null;
 }
@@ -95,11 +88,7 @@ export async function setConversationStatus(
 
 export async function markHandoffSeen(id: string): Promise<void> {
   const sb = getSupabase();
-  if (!sb) {
-    const c = mockConversations.find((c) => c.id === id);
-    if (c?.metadata?.handoff) c.metadata.handoff.seen = true;
-    return;
-  }
+  if (!sb) return;
   const { data } = await sb
     .from("conversations")
     .select("metadata")
@@ -114,7 +103,7 @@ export async function markHandoffSeen(id: string): Promise<void> {
 
 export async function getStats(): Promise<Stats> {
   const sb = getSupabase();
-  if (!sb) return mockStats;
+  if (!sb) return EMPTY_STATS;
 
   const [
     { count: active },
@@ -144,7 +133,7 @@ export async function getStats(): Promise<Stats> {
 
 export async function listCorrections(): Promise<Correction[]> {
   const sb = getSupabase();
-  if (!sb) return mockCorrections;
+  if (!sb) return [];
   const { data } = await sb
     .from("corrections")
     .select("*")
@@ -171,7 +160,7 @@ export async function deleteCorrection(id: string): Promise<void> {
 
 export async function listTraining(): Promise<TrainingExample[]> {
   const sb = getSupabase();
-  if (!sb) return mockTraining;
+  if (!sb) return [];
   const { data } = await sb
     .from("training_examples")
     .select("*")
